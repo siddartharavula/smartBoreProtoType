@@ -87,7 +87,7 @@ const App = () => {
     try {
       setLoading(true);
 
-      const response = await fetch("http://localhost:5000/predict", {
+      const response = await fetch(`${import.meta.env.frontend_API_URL}/predict`,{
         method: "POST",
         headers: {
           "Content-Type": "application/json",
