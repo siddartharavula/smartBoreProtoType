@@ -15,8 +15,7 @@ __pycache__/
 venv/
 env/
 
-# ML models
-ml-model/models/*.joblib
+
 
 # Jupyter
 .ipynb_checkpoints/
