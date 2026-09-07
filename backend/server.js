@@ -80,7 +80,7 @@ app.post("/predict", async (req, res) => {
 
     const response = await axios.post(
 
-      "http://127.0.0.1:5001/predict",
+      `${process.env.ML_API_URL}/predict`,
 
       {
         latitude,
@@ -148,4 +148,5 @@ app.post("/predict", async (req, res) => {
 
 app.listen(process.env.PORT || 5000, "0.0.0.0", () => {
   console.log("Server running");
-});;
+});
+;
