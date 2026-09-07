@@ -87,16 +87,19 @@ const App = () => {
     try {
       setLoading(true);
 
-      const response = await fetch(`${import.meta.env.frontend_API_URL}/predict`,{
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          latitude: lat,
-          longitude: lon,
-        }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/predict`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            latitude: lat,
+            longitude: lon,
+          }),
+        }
+      );
 
       const data = await response.json();
 
