@@ -4,149 +4,63 @@ const cors = require("cors");
 
 const app = express();
 
-
-// ============================================================
-// MIDDLEWARE
-// ============================================================
-
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://smart-bore-proto-type.vercel.app"
+    ]
   })
 );
 
 app.use(express.json());
 
-
-// ============================================================
-// HOME ROUTE
-// ============================================================
-
 app.get("/", (req, res) => {
   res.json({
-    message: "Smart Bore backend is running",
+    message: "Smart Bore backend is running"
   });
 });
 
-
-// ============================================================
-// PREDICTION ROUTE
-// ============================================================
-
 app.post("/predict", async (req, res) => {
   try {
-
-    const {
-      latitude,
-      longitude,
-    } = req.body;
-
-
-    // --------------------------------------------------------
-    // VALIDATION
-    // --------------------------------------------------------
+    const { latitude, longitude } = req.body;
 
     if (
       latitude === undefined ||
       longitude === undefined
     ) {
-
       return res.status(400).json({
-        message:
-          "Latitude and longitude are required",
+        message: "Latitude and longitude are required"
       });
-
     }
 
-
-    console.log(
-      "\n========== REQUEST FROM REACT =========="
-    );
-
-    console.log(
-      "Latitude:",
-      latitude
-    );
-
-    console.log(
-      "Longitude:",
-      longitude
-    );
-
-
-    // --------------------------------------------------------
-    // CALL FLASK ML API
-    // --------------------------------------------------------
-
     const response = await axios.post(
-
       `${process.env.ML_API_URL}/predict`,
-
       {
         latitude,
-        longitude,
+        longitude
       }
-
     );
-
-
-    console.log(
-      "\n========== RESPONSE FROM ML =========="
-    );
-
-    console.log(
-      "Success Rate:",
-      response.data.successRate
-    );
-
-    console.log(
-      "Expected Depth:",
-      response.data.expectedDepth
-    );
-
-
-    // --------------------------------------------------------
-    // SEND RESULT TO REACT
-    // --------------------------------------------------------
 
     res.json({
-
-      successRate:
-        response.data.successRate,
-
-      expectedDepth:
-        response.data.expectedDepth,
-
-      waterFound:
-        response.data.waterFound,
-
+      successRate: response.data.successRate,
+      expectedDepth: response.data.expectedDepth,
+      waterFound: response.data.waterFound
     });
-
 
   } catch (error) {
-
-    console.error(
-      "\nML API Error:",
-      error.message
-    );
-
+    console.error("ML API Error:", error.message);
 
     res.status(500).json({
-
-      message:
-        "Prediction failed",
-
+      message: "Prediction failed"
     });
-
   }
 });
 
-
-// ============================================================
-// START SERVER
-// ============================================================
-
-app.listen(process.env.PORT || 5000, "0.0.0.0", () => {
-  console.log("Server running");
-});
-;
+app.listen(
+  process.env.PORT || 5000,
+  "0.0.0.0",
+  () => {
+    console.log("Smart Bore backend is running");
+  }
+);
