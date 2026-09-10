@@ -119,6 +119,9 @@ const App = () => {
         setLoading(true);
         setError("");
 
+        const lat = Number(latitude);
+        const lng = Number(longitude);
+
         const response = await fetch(
           `${import.meta.env.VITE_API_URL}/predict`,
           {
@@ -127,8 +130,8 @@ const App = () => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              latitude: Number(latitude),
-              longitude: Number(longitude),
+              lat: lat,
+              lng: lng,
             }),
           }
         );
@@ -144,7 +147,9 @@ const App = () => {
         const data = JSON.parse(text);
 
         if (!response.ok) {
-          throw new Error(data.message || data.error || "Prediction failed");
+          throw new Error(
+            data.message || data.error || "Prediction failed"
+          );
         }
 
         setPrediction({
