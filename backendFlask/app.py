@@ -42,7 +42,7 @@ def predict():
 
         return jsonify({
             "depth_estimate": round(float(water_depth), 2),
-            "water_probability": round(float(water_probability), 2)
+            "water_probability": round(float(water_probability), 4)
         })
 
     except Exception as e:
