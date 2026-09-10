@@ -15,7 +15,13 @@ water_model = joblib.load(
 
 
 app=Flask(__name__)
-CORS(app, origins=["http://localhost:5173"])
+CORS(
+    app,
+    origins=[
+        "http://localhost:5173",
+        "https://your-vercel-url.vercel.app"
+    ]
+)
 
 @app.route('/predict', methods=['POST'])
 def predict():
