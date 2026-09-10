@@ -351,6 +351,11 @@ const App = () => {
             </div>
           )}
         </div>
+        {loading && (
+          <p className="mx-auto mt-4 max-w-4xl text-center text-sm text-gray-300 sm:text-base">
+            The server may take some time to predict. Please wait...
+          </p>
+        )}
       </div>
     </div>
   );
