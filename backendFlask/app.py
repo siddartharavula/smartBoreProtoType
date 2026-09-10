@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
-import joblib
 from flask_cors import CORS
-
+import joblib
 from pathlib import Path
+
 BASE_DIR = Path(__file__).resolve().parent
 
 depth_model = joblib.load(
@@ -13,24 +13,25 @@ water_model = joblib.load(
     BASE_DIR.parent / "ml-model" / "models" / "water_model.joblib"
 )
 
+app = Flask(__name__)
 
-app=Flask(__name__)
 CORS(
     app,
     origins=[
         "http://localhost:5173",
-        "https://your-vercel-url.vercel.app"
+        "https://smartboreprototype.vercel.app"
     ]
 )
 
-@app.route('/predict', methods=['POST'])
+
+@app.route("/predict", methods=["POST"])
 def predict():
 
     try:
         data = request.get_json()
 
-        lat = data.get('lat')
-        lng = data.get('lng')
+        lat = data.get("lat")
+        lng = data.get("lng")
 
         water_depth = depth_model.predict([[lat, lng]])[0]
 
@@ -39,8 +40,8 @@ def predict():
         )[0][1]
 
         return jsonify({
-            "depth_estimate": round(water_depth,2),
-            "water_probability": round(water_probability,2)
+            "depth_estimate": round(float(water_depth), 2),
+            "water_probability": round(float(water_probability), 2)
         })
 
     except Exception as e:
