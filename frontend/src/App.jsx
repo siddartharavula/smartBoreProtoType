@@ -7,6 +7,7 @@ const App = () => {
   const [longitude, setLongitude] = useState("");
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [error, setError] = useState("");
   const [predictTrigger, setPredictTrigger] = useState(0);
 
@@ -54,7 +55,62 @@ const App = () => {
     };
   }, []);
 
-  // Call Flask backend
+  // Get user's location
+  const handleUseLocation = () => {
+    setError("");
+    setPrediction(null);
+
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setLocationLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        if (
+          lat < MIN_LATITUDE ||
+          lat > MAX_LATITUDE ||
+          lon < MIN_LONGITUDE ||
+          lon > MAX_LONGITUDE
+        ) {
+          setError(
+            "Your current location is outside the supported area for Smart Bore."
+          );
+          setLocationLoading(false);
+          return;
+        }
+
+        setLatitude(lat.toFixed(5));
+        setLongitude(lon.toFixed(5));
+        setLocationLoading(false);
+      },
+      (error) => {
+        setLocationLoading(false);
+
+        if (error.code === 1) {
+          setError("Location permission was denied.");
+        } else if (error.code === 2) {
+          setError("Unable to determine your location.");
+        } else if (error.code === 3) {
+          setError("Location request timed out.");
+        } else {
+          setError("Unable to get your location.");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
+  // Call backend
   useEffect(() => {
     if (predictTrigger === 0) return;
 
@@ -63,36 +119,51 @@ const App = () => {
         setLoading(true);
         setError("");
 
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/predict`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            lat: Number(latitude),
-            lng: Number(longitude),
-          }),
-        });
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/predict`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              latitude: Number(latitude),
+              longitude: Number(longitude),
+            }),
+          }
+        );
 
         const text = await response.text();
 
-        console.log("Flask response:", text);
+        console.log("Backend response:", text);
 
         if (!text) {
-          throw new Error("Flask returned an empty response.");
+          throw new Error("Backend returned an empty response.");
         }
 
         const data = JSON.parse(text);
 
         if (!response.ok) {
-          throw new Error(data.error || "Prediction failed");
+          throw new Error(data.message || data.error || "Prediction failed");
         }
 
         setPrediction({
-          successRate: (data.water_probability * 100).toFixed(2),
+          successRate:
+            data.successRate !== undefined
+              ? Number(data.successRate).toFixed(2)
+              : data.water_probability !== undefined
+              ? (Number(data.water_probability) * 100).toFixed(2)
+              : null,
+
           expectedDepth:
-            data.depth_estimate !== null
-              ? Number(data.depth_estimate).toFixed(2)
+            data.expectedDepth !== undefined
+              ? data.expectedDepth !== null
+                ? Number(data.expectedDepth).toFixed(2)
+                : null
+              : data.depth_estimate !== undefined
+              ? data.depth_estimate !== null
+                ? Number(data.depth_estimate).toFixed(2)
+                : null
               : null,
         });
       } catch (err) {
@@ -121,23 +192,20 @@ const App = () => {
     const lat = Number(latitude);
     const lon = Number(longitude);
 
-    // Validate latitude
     if (lat < MIN_LATITUDE || lat > MAX_LATITUDE) {
       setError(
-        `Please re-enter latitude between ${MIN_LATITUDE} and ${MAX_LATITUDE}.`,
+        `Please re-enter latitude between ${MIN_LATITUDE} and ${MAX_LATITUDE}.`
       );
       return;
     }
 
-    // Validate longitude
     if (lon < MIN_LONGITUDE || lon > MAX_LONGITUDE) {
       setError(
-        `Please re-enter longitude between ${MIN_LONGITUDE} and ${MAX_LONGITUDE}.`,
+        `Please re-enter longitude between ${MIN_LONGITUDE} and ${MAX_LONGITUDE}.`
       );
       return;
     }
 
-    // Trigger Flask API call
     setPredictTrigger((prev) => prev + 1);
   };
 
@@ -221,14 +289,25 @@ const App = () => {
               />
             </div>
 
-            {/* Predict button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-lg font-bold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 sm:text-xl"
-            >
-              {loading ? "Predicting..." : "Predict"}
-            </button>
+            {/* Location and Predict buttons */}
+            <div className="mt-5 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={handleUseLocation}
+                disabled={locationLoading || loading}
+                className="w-full rounded-xl border border-blue-500 bg-blue-500/10 px-4 py-2 text-lg font-semibold text-blue-400 transition hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50 sm:text-xl"
+              >
+                {locationLoading ? "Getting Location..." : "Use My Location"}
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading || locationLoading}
+                className="w-full rounded-xl bg-blue-600 px-4 py-3 text-lg font-bold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 sm:text-xl"
+              >
+                {loading ? "Predicting..." : "Predict"}
+              </button>
+            </div>
           </form>
 
           {/* Error */}
