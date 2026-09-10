@@ -8,6 +8,7 @@ const App = () => {
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [predictTrigger, setPredictTrigger] = useState(0);
 
   const MIN_LATITUDE = 15.87248;
   const MAX_LATITUDE = 19.89171;
@@ -53,8 +54,60 @@ const App = () => {
     };
   }, []);
 
+  // Call Flask backend
+  useEffect(() => {
+    if (predictTrigger === 0) return;
+
+    const getPrediction = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/predict`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            lat: Number(latitude),
+            lng: Number(longitude),
+          }),
+        });
+
+        const text = await response.text();
+
+        console.log("Flask response:", text);
+
+        if (!text) {
+          throw new Error("Flask returned an empty response.");
+        }
+
+        const data = JSON.parse(text);
+
+        if (!response.ok) {
+          throw new Error(data.error || "Prediction failed");
+        }
+
+        setPrediction({
+          successRate: (data.water_probability * 100).toFixed(2),
+          expectedDepth:
+            data.depth_estimate !== null
+              ? Number(data.depth_estimate).toFixed(2)
+              : null,
+        });
+      } catch (err) {
+        console.error(err);
+        setError(err.message || "Unable to fetch prediction.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getPrediction();
+  }, [predictTrigger]);
+
   // Submit prediction
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     setError("");
@@ -71,7 +124,7 @@ const App = () => {
     // Validate latitude
     if (lat < MIN_LATITUDE || lat > MAX_LATITUDE) {
       setError(
-        `Please re-enter latitude between ${MIN_LATITUDE} and ${MAX_LATITUDE}.`
+        `Please re-enter latitude between ${MIN_LATITUDE} and ${MAX_LATITUDE}.`,
       );
       return;
     }
@@ -79,40 +132,13 @@ const App = () => {
     // Validate longitude
     if (lon < MIN_LONGITUDE || lon > MAX_LONGITUDE) {
       setError(
-        `Please re-enter longitude between ${MIN_LONGITUDE} and ${MAX_LONGITUDE}.`
+        `Please re-enter longitude between ${MIN_LONGITUDE} and ${MAX_LONGITUDE}.`,
       );
       return;
     }
 
-    try {
-      setLoading(true);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/predict`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            latitude: lat,
-            longitude: lon,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Prediction failed");
-      }
-
-      setPrediction(data);
-    } catch (err) {
-      setError(err.message || "Unable to fetch prediction.");
-    } finally {
-      setLoading(false);
-    }
+    // Trigger Flask API call
+    setPredictTrigger((prev) => prev + 1);
   };
 
   return (
